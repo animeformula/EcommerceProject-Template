@@ -1,0 +1,273 @@
+@model EcommerceProject.Models.Product
+
+@{
+    ViewData["Title"] = Model.Name;
+}
+
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
+            <li class="breadcrumb-item"><a asp-controller="Categories" asp-action="Details" asp-route-id="@Model.CategoryId">@Model.Category?.Name</a></li>
+            <li class="breadcrumb-item active" aria-current="page">@Model.Name</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-md-6">
+            @if (!string.IsNullOrEmpty(Model.ImageUrl))
+            {
+                <img src="@Model.ImageUrl" alt="@Model.Name" class="img-fluid rounded">
+            }
+            else
+            {
+                <div class="bg-light rounded d-flex align-items-center justify-content-center" style="height: 400px;">
+                    <i class="bi bi-image text-muted" style="font-size: 4rem;"></i>
+                </div>
+            }
+        </div>
+        <div class="col-md-6">
+            <h1 class="mb-3 d-flex align-items-center gap-2">
+                @Model.Name
+                <!-- Wishlist Button -->
+                <form asp-controller="Wishlist" asp-action="@(ViewBag.UserWishlist != null && ((HashSet<int>)ViewBag.UserWishlist).Contains(Model.Id) ? "Remove" : "Add")" method="post" class="wishlist-form d-inline" data-product-id="@Model.Id">
+                    <input type="hidden" name="productId" value="@Model.Id" />
+                    <button type="submit" class="btn btn-link p-0 wishlist-btn" title="@(ViewBag.UserWishlist != null && ((HashSet<int>)ViewBag.UserWishlist).Contains(Model.Id) ? "Remove from Wishlist" : "Add to Wishlist")">
+                        @if (ViewBag.UserWishlist != null && ((HashSet<int>)ViewBag.UserWishlist).Contains(Model.Id))
+                        {
+                            <i class="bi bi-heart-fill fs-3 text-danger"></i>
+                        }
+                        else
+                        {
+                            <i class="bi bi-heart fs-3 text-danger"></i>
+                        }
+                    </button>
+                </form>
+            </h1>
+            <p class="text-muted mb-4">@Model.Category?.Name</p>
+            <!-- Star Rating Display -->
+            <div class="mb-3">
+                <div class="star-rating" data-product-id="@Model.Id">
+                    @for (int i = 1; i <= 5; i++)
+                    {
+                        if (i <= Math.Round(Model.AverageRating))
+                        {
+                            <i class="bi bi-star-fill text-warning"></i>
+                        }
+                        else
+                        {
+                            <i class="bi bi-star text-warning"></i>
+                        }
+                    }
+                    <span class="text-muted small ms-1">(@Model.ReviewCount)</span>
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <h2 class="text-primary mb-0">@Model.Price.ToString("C")</h2>
+                @if (Model.StockQuantity > 0)
+                {
+                    <span class="badge bg-success">In Stock</span>
+                }
+                else
+                {
+                    <span class="badge bg-danger">Out of Stock</span>
+                }
+            </div>
+
+            <div class="mb-4">
+                <h5>Description</h5>
+                <p>@Model.Description</p>
+            </div>
+
+            @if (Model.IsActive && Model.StockQuantity > 0)
+            {
+                <form asp-controller="Cart" asp-action="AddToCart" method="post" class="mb-4">
+                    <input type="hidden" name="productId" value="@Model.Id" />
+                    <div class="input-group mb-3" style="max-width: 200px;">
+                        <button type="button" class="btn btn-outline-secondary" onclick="decrementQuantity()">-</button>
+                        <input type="number" name="quantity" id="quantity" class="form-control text-center" value="1" min="1" max="@Model.StockQuantity">
+                        <button type="button" class="btn btn-outline-secondary" onclick="incrementQuantity()">+</button>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-cart-plus"></i> Add to Cart
+                    </button>
+                </form>
+            }
+
+            <!-- Review Form for Authenticated Users -->
+            @if (User.Identity.IsAuthenticated)
+            {
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Write a Review</h5>
+                        <form class="review-form" data-product-id="@Model.Id">
+                            <div class="mb-3">
+                                <label class="form-label">Rating</label>
+                                <div class="rate-stars">
+                                    @for (int i = 1; i <= 5; i++)
+                                    {
+                                        <button type="button" class="btn btn-link rate-star-btn p-0 me-1" data-rating="@i">
+                                            <i class="bi bi-star text-warning"></i>
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="reviewComment" class="form-label">Your Review</label>
+                                <textarea class="form-control" id="reviewComment" rows="3" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Submit Review</button>
+                        </form>
+                    </div> 
+                </div>
+            }
+
+            @if (User.IsInRole("Admin"))
+            {
+                <div class="mt-4">
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary">
+                        <i class="bi bi-pencil"></i> Edit
+                    </a>
+                    <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-outline-danger">
+                        <i class="bi bi-trash"></i> Delete
+                    </a>
+                </div>
+            }
+
+            <div class="reviews-section">
+                <h4>Customer Reviews</h4>
+                <div id="reviewsList" class="mt-3">
+                    <!-- Reviews will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let selectedRating = 0;
+        let lastSelected = 0;
+
+        function incrementQuantity() {
+            const input = document.getElementById('quantity');
+            const max = parseInt(input.getAttribute('max'));
+            if (parseInt(input.value) < max) {
+                input.value = parseInt(input.value) + 1;
+            }
+        }
+         
+        function decrementQuantity() {
+            const input = document.getElementById('quantity');
+            if (parseInt(input.value) > 1) {
+                input.value = parseInt(input.value) - 1;
+            }
+        }
+
+        // Load reviews when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadReviews();
+        });
+
+        function loadReviews() {
+            const productId = @Model.Id;
+            fetch(`/Reviews/GetProductReviews?productId=${productId}`)
+                .then(response => response.json())
+                .then(reviews => {
+                    const reviewsList = document.getElementById('reviewsList');
+                    reviewsList.innerHTML = reviews.map(review => `
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="card-subtitle text-muted">${review.userName}</h6>
+                                    <small class="text-muted">${new Date(review.createdAt).toLocaleDateString()}</small>
+                                </div>
+                                <div class="mb-2">
+                                    ${Array(5).fill().map((_, i) => 
+                                        `<i class="bi bi-star${i < review.rating ? '-fill' : ''} text-warning"></i>`
+                                    ).join('')}
+                                </div>
+                                <p class="card-text">${review.comment}</p>
+                            </div>
+                        </div>
+                    `).join('') || '<p class="text-muted">No reviews yet.</p>';
+                });
+        }
+
+        // Handle star rating selection
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.rate-star-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const rating = parseInt(this.dataset.rating);
+                    selectedRating = rating;
+                    lastSelected = rating;
+                    // Update star display for the review form only
+                    document.querySelectorAll('.rate-star-btn i').forEach((star, index) => {
+                        star.className = `bi bi-star${index < rating ? '-fill' : ''} text-warning`;
+                    });
+                });
+            });
+        });
+
+        // Handle review submission
+        document.querySelector('.review-form')?.addEventListener('submit', function(e) {
+            e.preventDefault();
+            if (selectedRating === 0) {
+                alert('Please select a rating');
+                return;
+            }
+            const productId = this.dataset.productId;
+            const comment = document.getElementById('reviewComment').value;
+            fetch('/Reviews/Create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `productId=${productId}&rating=${selectedRating}&comment=${encodeURIComponent(comment)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Update average rating display
+                const starRating = document.querySelector('.star-rating');
+                let html = '';
+                for (let i = 1; i <= 5; i++) {
+                    html += `<i class="bi bi-star${i <= Math.round(data.averageRating) ? '-fill' : ''} text-warning"></i>`;
+                }
+                html += `<span class="text-muted small ms-1">(${data.reviewCount})</span>`;
+                starRating.innerHTML = html;
+                // Reset form
+                selectedRating = 0;
+                document.getElementById('reviewComment').value = '';
+                document.querySelectorAll('.rate-star-btn i').forEach(star => {
+                    star.className = 'bi bi-star text-warning';
+                });
+                // Reload reviews
+                loadReviews();
+            });
+        });
+
+        // Wishlist AJAX
+        document.querySelectorAll('.wishlist-form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                fetch(form.action, {
+                    method: 'POST',
+                    body: new FormData(form),
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                }).then(() => {
+                    // Optionally update the heart icon in place
+                    const btn = form.querySelector('.wishlist-btn i');
+                    if (btn.classList.contains('bi-heart')) {
+                        btn.classList.remove('bi-heart');
+                        btn.classList.add('bi-heart-fill');
+                    } else {
+                        btn.classList.remove('bi-heart-fill');
+                        btn.classList.add('bi-heart');
+                    }
+                });
+            });
+        });
+    </script>
+} 

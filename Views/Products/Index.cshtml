@@ -1,0 +1,148 @@
+@model IEnumerable<EcommerceProject.Models.Product>
+
+@{
+    ViewData["Title"] = "Products";
+}
+
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>Products</h2>
+        </div>
+        <div class="col-md-4 text-end">
+            @if (User.IsInRole("Admin"))
+            {
+                <a asp-action="Create" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Add New Product
+                </a>
+            }
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <form asp-action="Index" method="get" class="row g-3">
+                        <div class="col-md-4">
+                            <select name="categoryId" class="form-select" asp-items="@(new SelectList(ViewBag.Categories, "Id", "Name", ViewBag.SelectedCategory))">
+                                <option value="">All Categories</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <input type="text" name="searchString" class="form-control" placeholder="Search products..." value="@ViewBag.SearchString" />
+                        </div>
+                        <div class="col-md-4">
+                            <select name="sortOrder" class="form-select" asp-items="@(new SelectList(new[] {
+                                new { Value = "", Text = "Name (A-Z)" },
+                                new { Value = "name_desc", Text = "Name (Z-A)" },
+                                new { Value = "price", Text = "Price (Low to High)" },
+                                new { Value = "price_desc", Text = "Price (High to Low)" }
+                            }, "Value", "Text", ViewBag.SortOrder))">
+                            </select>
+                        </div>
+                        <div class="col-12 text-end">
+                            <button type="submit" class="btn btn-primary">Apply Filters</button>
+                            <a asp-action="Index" class="btn btn-secondary">Clear</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
+        @foreach (var item in Model)
+        {
+            <div class="col">
+                <div class="card h-100 product-card shadow-lg rounded-4 border-0 position-relative">
+                    <img src="@item.ImageUrl" class="card-img-top rounded-top-4" alt="@item.Name" style="object-fit:cover;height:220px;">
+                    <div class="card-body d-flex flex-column">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="card-title mb-0">@item.Name</h5>
+                            <!-- Wishlist Button -->
+                            <form asp-controller="Wishlist" asp-action="@(ViewBag.UserWishlist != null && ((HashSet<int>)ViewBag.UserWishlist).Contains(item.Id) ? "Remove" : "Add")" method="post" class="wishlist-form" data-product-id="@item.Id">
+                                <input type="hidden" name="productId" value="@item.Id" />
+                                <button type="submit" class="btn btn-link p-0 wishlist-btn" title="@(ViewBag.UserWishlist != null && ((HashSet<int>)ViewBag.UserWishlist).Contains(item.Id) ? "Remove from Wishlist" : "Add to Wishlist")">
+                                    @if (ViewBag.UserWishlist != null && ((HashSet<int>)ViewBag.UserWishlist).Contains(item.Id))
+                                    {
+                                        <i class="bi bi-heart-fill fs-4 text-danger"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-heart fs-4 text-danger"></i>
+                                    }
+                                </button>
+                            </form>
+                        </div>
+                        <p class="card-text text-muted small">@item.Category.Name</p>
+                        <p class="card-text flex-grow-1">@(item.Description?.Length > 100 ? item.Description.Substring(0, 100) + "..." : item.Description)</p>
+                        <!-- Star Rating Display -->
+                        <div class="mb-2">
+                            <span class="star-rating" data-product-id="@item.Id">
+                                @{
+                                    double avg = item.Reviews?.Any() == true ? item.Reviews.Average(r => r.Rating) : 0;
+                                    int count = item.Reviews?.Count ?? 0;
+                                    for (int i = 1; i <= 5; i++)
+                                    {
+                                        if (i <= Math.Round(avg))
+                                        {
+                                            <i class="bi bi-star-fill text-warning"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-star text-warning"></i>
+                                        }
+                                    }
+                                }
+                                <span class="text-muted small ms-1">(@count)</span>
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <span class="price fw-bold fs-5">$@item.Price.ToString("F2")</span>
+                            <div class="btn-group">
+                                <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-primary rounded-pill px-3 shadow-sm">
+                                    <i class="bi bi-eye"></i> Details
+                                </a>
+                                @if (User.IsInRole("Admin"))
+                                {
+                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-secondary rounded-pill px-3">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger rounded-pill px-3">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('.wishlist-form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                fetch(form.action, {
+                    method: 'POST',
+                    body: new FormData(form),
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                }).then(() => {
+                    // Optionally update the heart icon in place
+                    const btn = form.querySelector('.wishlist-btn i');
+                    if (btn.classList.contains('bi-heart')) {
+                        btn.classList.remove('bi-heart');
+                        btn.classList.add('bi-heart-fill');
+                    } else {
+                        btn.classList.remove('bi-heart-fill');
+                        btn.classList.add('bi-heart');
+                    }
+                });
+            });
+        });
+    </script>
+} 

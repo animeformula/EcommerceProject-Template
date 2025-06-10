@@ -1,0 +1,75 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+<!-- Modern Hero Section -->
+<div class="hero-section text-white text-center py-5" style="background: linear-gradient(120deg, #4f8cff 0%, #6ee7b7 100%), url('/images/hero-bg.jpg'); background-size: cover; background-position: center; animation: fadeIn 1s; min-height: 60vh; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+    <h1 class="display-2 mb-3 animate__animated animate__fadeInDown fw-bold" style="letter-spacing: -2px;">Shop the Future of Style</h1>
+    <p class="lead animate__animated animate__fadeInUp mb-4" style="font-size:1.5rem;">Discover trending products, curated for you. Fast shipping. Easy returns. Always modern.</p>
+    <a href="/Products" class="btn btn-lg btn-primary rounded-pill px-5 py-3 shadow animate__animated animate__pulse animate__infinite" style="font-size:1.25rem;">Shop Now</a>
+</div>
+
+<!-- Feature Sections -->
+<div class="container my-5">
+    <div class="row g-4 text-center">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm p-4 h-100 rounded-4">
+                <div class="mb-3"><i class="bi bi-truck fs-1 text-primary"></i></div>
+                <h5 class="fw-bold mb-2">Fast & Free Shipping</h5>
+                <p class="text-muted">Get your orders delivered quickly, anywhere in the world.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm p-4 h-100 rounded-4">
+                <div class="mb-3"><i class="bi bi-shield-check fs-1 text-success"></i></div>
+                <h5 class="fw-bold mb-2">Secure Payments</h5>
+                <p class="text-muted">Your payment info is encrypted and protected at all times.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm p-4 h-100 rounded-4">
+                <div class="mb-3"><i class="bi bi-arrow-repeat fs-1 text-info"></i></div>
+                <h5 class="fw-bold mb-2">Easy Returns</h5>
+                <p class="text-muted">Not satisfied? Return your product easily within 30 days.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Featured Products Placeholder -->
+<div class="container my-5 animate__animated animate__fadeInUp">
+    <h2 class="text-center mb-4 fw-bold">Featured Products</h2>
+    <div class="row justify-content-center">
+        @if (ViewBag.FeaturedProducts != null && ((IEnumerable<EcommerceProject.Models.Product>)ViewBag.FeaturedProducts).Any())
+        {
+            foreach (var product in (IEnumerable<EcommerceProject.Models.Product>)ViewBag.FeaturedProducts)
+            {
+                <div class="col-md-3 mb-4">
+                    <div class="card shadow h-100 hover-zoom rounded-4 border-0">
+                        <img src="@product.ImageUrl" class="card-img-top rounded-top-4" alt="@product.Name" style="object-fit:cover;height:200px;">
+                        <div class="card-body">
+                            <h5 class="card-title fw-bold">@product.Name</h5>
+                            <p class="card-text">@(product.Description?.Length > 80 ? product.Description.Substring(0, 80) + "..." : product.Description)</p>
+                            <a href="/Products/Details/@product.Id" class="btn btn-primary rounded-pill px-3">View</a>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="col-12 text-center text-muted">No featured products available.</div>
+        }
+    </div>
+</div>
+
+<!-- Animations CSS (add to _Layout.cshtml or site.css for global use) -->
+<style>
+keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+.hover-zoom:hover { transform: scale(1.05); transition: transform 0.3s; }
+</style>
+<!-- Optionally, add animate.css for more animations -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />

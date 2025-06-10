@@ -1,0 +1,46 @@
+@model IEnumerable<EcommerceProject.Models.Product>
+@{
+    ViewData["Title"] = "My Wishlist";
+}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h2 class="text-center mb-4">My Wishlist</h2>
+                    @if (!Model.Any())
+                    {
+                        <p class="text-center">Your wishlist is empty.</p>
+                    }
+                    else
+                    {
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Price</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var product in Model)
+                                {
+                                    <tr>
+                                        <td>@product.Name</td>
+                                        <td>@product.Price.ToString("C")</td>
+                                        <td>
+                                            <form asp-action="Remove" method="post" style="display:inline">
+                                                <input type="hidden" name="productId" value="@product.Id" />
+                                                <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 

@@ -1,0 +1,98 @@
+@model EcommerceProject.ViewModels.ProductCreateViewModel
+
+@{
+    ViewData["Title"] = "Create Product";
+    bool disableCategory = ViewBag.Categories == null || ((List<EcommerceProject.Models.Category>)ViewBag.Categories).Count == 0;
+    string disabledAttr = disableCategory ? "disabled=\"disabled\"" : string.Empty;
+}
+
+@if (ViewBag.ModelErrors != null && ((List<string>)ViewBag.ModelErrors).Count > 0)
+{
+    <div class="alert alert-danger">
+        <ul>
+        @foreach (var error in (List<string>)ViewBag.ModelErrors)
+        {
+            <li>@error</li>
+        }
+        </ul>
+    </div>
+}
+
+@if (ViewBag.Categories == null || ((List<EcommerceProject.Models.Category>)ViewBag.Categories).Count == 0)
+{
+    <div class="alert alert-warning">No categories exist. Please create a category first.</div>
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="card-title mb-4">Create New Product</h2>
+                    <form asp-action="Create" method="post" enctype="multipart/form-data">
+                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="Name" class="form-label"></label>
+                            <input asp-for="Name" class="form-control" />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Description" class="form-label"></label>
+                            <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Price" class="form-label"></label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input asp-for="Price" class="form-control" />
+                            </div>
+                            <span asp-validation-for="Price" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="StockQuantity" class="form-label"></label>
+                            <input asp-for="StockQuantity" class="form-control" type="number" min="0" />
+                            <span asp-validation-for="StockQuantity" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="CategoryId" class="form-label">Category</label>
+                            @if (disableCategory)
+                            {
+                                <select asp-for="CategoryId" class="form-select" asp-items="@(new SelectList(ViewBag.Categories, "Id", "Name"))" disabled="disabled">
+                                    <option value="">Select a category</option>
+                                </select>
+                            }
+                            else
+                            {
+                                <select asp-for="CategoryId" class="form-select" asp-items="@(new SelectList(ViewBag.Categories, "Id", "Name"))">
+                                    <option value="">Select a category</option>
+                                </select>
+                            }
+                            <span asp-validation-for="CategoryId" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="ImageFile" class="form-label">Product Image</label>
+                            <input asp-for="ImageFile" type="file" class="form-control" accept="image/*" />
+                            <span asp-validation-for="ImageFile" class="text-danger"></span>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary" @(disableCategory ? "disabled=\"disabled\"" : "")>Create Product</button>
+                            <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+} 

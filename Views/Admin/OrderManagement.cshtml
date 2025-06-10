@@ -1,0 +1,161 @@
+@model IEnumerable<EcommerceProject.Models.Order>
+@{
+    ViewData["Title"] = "Order Management";
+}
+
+<div class="container mt-5">
+    <div class="row">
+        <!-- Statistics Cards -->
+        <div class="col-12 mb-4">
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Total Orders</h5>
+                            <h2 class="card-text">@ViewBag.TotalOrders</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Total Revenue</h5>
+                            <h2 class="card-text">@ViewBag.TotalRevenue.ToString("C")</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Pending Orders</h5>
+                            <h2 class="card-text">@ViewBag.PendingOrders</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Processing Orders</h5>
+                            <h2 class="card-text">@ViewBag.ProcessingOrders</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters and Search -->
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-4">
+                            <input type="text" name="searchString" value="@Context.Request.Query["searchString"]" class="form-control" placeholder="Search orders...">
+                        </div>
+                        <div class="col-md-2">
+                            <select name="statusFilter" class="form-select">
+                                <option value="">All Statuses</option>
+                                @foreach (var status in Enum.GetNames(typeof(EcommerceProject.Models.OrderStatus)))
+                                {
+                                    <option value="@status" selected="@(Context.Request.Query["statusFilter"] == status)">@status</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select name="dateFilter" class="form-select">
+                                <option value="">All Time</option>
+                                <option value="today" selected="@(Context.Request.Query["dateFilter"] == "today")">Today</option>
+                                <option value="week" selected="@(Context.Request.Query["dateFilter"] == "week")">Last 7 Days</option>
+                                <option value="month" selected="@(Context.Request.Query["dateFilter"] == "month")">Last 30 Days</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select name="sortOrder" class="form-select">
+                                <option value="date_desc" selected="@(Context.Request.Query["sortOrder"] == "date_desc")">Newest First</option>
+                                <option value="date_asc" selected="@(Context.Request.Query["sortOrder"] == "date_asc")">Oldest First</option>
+                                <option value="amount_desc" selected="@(Context.Request.Query["sortOrder"] == "amount_desc")">Highest Amount</option>
+                                <option value="amount_asc" selected="@(Context.Request.Query["sortOrder"] == "amount_asc")">Lowest Amount</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Orders Table -->
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2 class="card-title">Order Management</h2>
+                        <a href="@Url.Action("ExportOrders", new { searchString = Context.Request.Query["searchString"], statusFilter = Context.Request.Query["statusFilter"], dateFilter = Context.Request.Query["dateFilter"] })" class="btn btn-success">
+                            <i class="fas fa-download"></i> Export to CSV
+                        </a>
+                    </div>
+
+                    @if (!Model.Any())
+                    {
+                        <p class="text-center">No orders found.</p>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Order ID</th>
+                                        <th>Customer</th>
+                                        <th>Status</th>
+                                        <th>Total</th>
+                                        <th>Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var order in Model)
+                                    {
+                                        <tr>
+                                            <td>@order.Id</td>
+                                            <td>@order.User?.Email</td>
+                                            <td>
+                                                <span class="badge bg-@(order.Status switch {
+                                                    EcommerceProject.Models.OrderStatus.Pending => "warning",
+                                                    EcommerceProject.Models.OrderStatus.Processing => "info",
+                                                    EcommerceProject.Models.OrderStatus.Shipped => "primary",
+                                                    EcommerceProject.Models.OrderStatus.Delivered => "success",
+                                                    EcommerceProject.Models.OrderStatus.Cancelled => "danger",
+                                                    _ => "secondary"
+                                                })">
+                                                    @order.Status
+                                                </span>
+                                            </td>
+                                            <td>@order.TotalAmount.ToString("C")</td>
+                                            <td>@order.CreatedAt.ToString("g")</td>
+                                            <td>
+                                                <a asp-action="OrderDetails" asp-route-id="@order.Id" class="btn btn-info btn-sm">
+                                                    <i class="fas fa-eye"></i> Details
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Add any JavaScript for enhanced interactivity here
+        $(document).ready(function() {
+            // Initialize tooltips
+            $('[data-toggle="tooltip"]').tooltip();
+        });
+    </script>
+} 
