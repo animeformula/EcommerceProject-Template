@@ -21,7 +21,7 @@ A modern ASP.NET Core MVC e-commerce web application.
 
 ### 2. Clone the Repository
 ```
-git clone <your-repo-url>
+git clone https://github.com/animeformula/EcommerceProject-Template
 cd EcommerceProject
 ```
 
